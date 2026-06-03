@@ -136,7 +136,7 @@ Este proyecto **no implementa carrito ni pedidos**: es un visor público estáti
 
 ## Probar con Firebase Storage
 
-Puedes usar la misma web en GitHub Pages para cargar un catálogo remoto por query param `catalog`.
+Puedes usar la misma web en GitHub Pages para cargar un catálogo remoto por query param `catalog` o por el nuevo query param `url` codificado en Base64 URL-safe. Si ambos parámetros existen, `url` tiene prioridad.
 
 ### 1) Subir `catalog.json` a Firebase Storage
 
@@ -163,11 +163,22 @@ Asegúrate de que las reglas/permisos permitan lectura pública para pruebas (o 
 
 ### 4) Codificar URL para usarla en GitHub Pages
 
-Codifica **la URL completa** con `encodeURIComponent(...)`, por ejemplo desde consola del navegador:
+Para el formato compatible existente con `catalog`, codifica **la URL completa** con `encodeURIComponent(...)`, por ejemplo desde consola del navegador:
 
 ```js
 const firebaseCatalogUrl = "https://firebasestorage.googleapis.com/v0/b/BUCKET/o/catalogs%2Fdemo-puntrosales-001%2Fcatalog.json?alt=media";
 const encoded = encodeURIComponent(firebaseCatalogUrl);
+console.log(encoded);
+```
+
+Para el nuevo formato `url`, codifica la URL completa como Base64 URL-safe:
+
+```js
+const firebaseCatalogUrl = "https://firebasestorage.googleapis.com/v0/b/BUCKET/o/catalogs%2Fdemo-puntrosales-001%2Fcatalog.json?alt=media";
+const encoded = btoa(unescape(encodeURIComponent(firebaseCatalogUrl)))
+  .replace(/\+/g, "-")
+  .replace(/\//g, "_")
+  .replace(/=+$/, "");
 console.log(encoded);
 ```
 
@@ -181,12 +192,30 @@ Ejemplo completo:
 
 `https://USUARIO.github.io/puntrosales-web-catalog/?catalog=https%3A%2F%2Ffirebasestorage.googleapis.com%2Fv0%2Fb%2FBUCKET%2Fo%2Fcatalogs%252Fdemo-puntrosales-001%252Fcatalog.json%3Falt%3Dmedia`
 
+O usa el nuevo parámetro `url`:
+
+`https://USUARIO.github.io/puntrosales-web-catalog/?url=URL_BASE64_URL_SAFE`
+
 ### Comportamiento esperado
 
 - Sin query param, la app carga `./catalog.json`.
-- Con `?catalog=...`, la app intenta cargar la URL remota usando el valor retornado por `URLSearchParams.get("catalog")` (sin `decodeURIComponent` manual adicional).
+- Con `?url=...`, la app decodifica el valor como Base64 URL-safe, valida que el resultado sea una URL `http:` o `https:`, y usa esa URL decodificada para cargar el JSON.
+- Si llegan `?url=...` y `?catalog=...` en la misma URL, `url` tiene prioridad.
+- Con `?catalog=...`, la app mantiene compatibilidad e intenta cargar la URL remota usando el valor retornado por `URLSearchParams.get("catalog")` (sin `decodeURIComponent` manual adicional).
 - Para Firebase Storage, esto evita romper el object path (`%2F`) dentro de la URL del archivo.
-- Si falla descarga, CORS o permisos de Firebase, verás un mensaje claro en pantalla y detalles en consola.
+- Si la URL remota no es válida, la decodificación de `url` falla, o hay problemas de descarga, CORS o permisos, verás un mensaje claro en pantalla y detalles en consola.
+
+### Ejemplo con `url` en Base64 URL-safe
+
+URL recibida:
+
+`https://www.imecatro.com/catalog/?url=aHR0cHM6Ly9hcHBzLmltZWNhdHJvLmNvbS9jL2RlbW8tcHVudHJvc2FsZXMtMDAx`
+
+La app decodifica el parámetro `url` a:
+
+`https://apps.imecatro.com/c/demo-puntrosales-001`
+
+Y después hace `fetch()` a esa URL decodificada.
 
 ## Identidad visual y personalización de marca
 
