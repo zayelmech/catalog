@@ -30,6 +30,7 @@ No hay backend ni dependencias obligatorias externas.
     catalog-loader.js
   /assets
     placeholder.svg
+    puntro-sales-og-v1.jpg
 ```
 
 ## Cómo correr localmente
@@ -70,9 +71,68 @@ Si llega un valor no válido, la app usa `default-catalog` automáticamente.
    - **Branch**: `main` y carpeta `/ (root)`
 4. Guarda y espera el deploy.
 
-La web está preparada con rutas relativas (`./css/...`, `./js/...`, `./assets/...`), así que funciona bien en rutas como:
+La web usa rutas relativas (`./css/...`, `./js/...`, `./assets/...`) para funcionar dentro de un subdirectorio.
 
-`https://usuario.github.io/puntrosales-web-catalog/`
+La URL pública de este visor se verificó el **27 de octubre de 2026**: [https://www.imecatro.com/catalog/](https://www.imecatro.com/catalog/). Responde con HTTP 200 y sirve el HTML de este repositorio. El alias [https://zayelmech.github.io/catalog/](https://zayelmech.github.io/catalog/) redirige a esa dirección; también se comprobó que conserva los parámetros en la redirección.
+
+## Previsualización genérica al compartir enlaces
+
+`index.html` incluye directamente en el `head`, sin ejecutar JavaScript:
+
+- Título HTML y `og:title`: **Catálogos de Puntro Sales**.
+- `meta description` y `og:description`: **Consulta los productos y novedades de los negocios que comparten su catálogo con Puntro Sales.**
+- `og:type`: `website`; `og:site_name`: `Puntro Sales`.
+- `og:image` y sus propiedades `width`, `height`, `type` y `alt`.
+
+Todos los enlaces reciben esta misma tarjeta, tanto sin parámetros como con `?catalog=` o `?url=`. Los datos del JSON siguen mostrando el nombre, la descripción y los productos de cada negocio dentro del visor; no modifican los metadatos ni la imagen.
+
+Se omite `og:url`: no se declara una única identidad Open Graph que pueda agrupar los enlaces de distintos catálogos bajo la dirección genérica. No se añade `canonical` ni redirección. La selección del catálogo y el botón **Copiar link** siguen utilizando la URL completa, con sus parámetros y la prioridad de `url`.
+
+### Imagen estática
+
+| Propiedad | Valor |
+| --- | --- |
+| Archivo | `assets/puntro-sales-og-v1.jpg` |
+| URL absoluta HTTPS | [https://www.imecatro.com/catalog/assets/puntro-sales-og-v1.jpg](https://www.imecatro.com/catalog/assets/puntro-sales-og-v1.jpg) |
+| Dimensiones | 1200 × 630 píxeles |
+| Formato / MIME | JPEG / `image/jpeg` |
+| Peso | 156 747 bytes (153,07 KiB) |
+| Texto alternativo | Ilustración sobre fondo turquesa con teléfonos que muestran catálogos, listas y un lector de código de barras, junto a iconos de productos, clientes y gráficas. |
+
+Se adaptó el archivo proporcionado `puntrobanner.png` (512 × 250), conservando su contenido completo y sus proporciones: ampliación a 1200 × 586 con el redondeo al píxel y márgenes turquesa de 22 píxeles arriba y abajo. Se exportó como JPEG de calidad 85. No se usó IA ni se añadieron elementos o datos de ningún negocio. La ampliación conserva la limitación de detalle de la fuente original.
+
+El archivo se sirve directamente desde `assets/`, sin procesamiento por visita. La URL incluye el subdirectorio real `/catalog/`. Para cambiar la imagen en el futuro, publica otro archivo versionado, por ejemplo `puntro-sales-og-v2.jpg`, y actualiza las etiquetas de imagen en el HTML, incluidas dimensiones, MIME y texto alternativo si cambian. Los enlaces de los catálogos pueden mantenerse. Si el visor se muda de dominio o subdirectorio, hay que actualizar también la URL absoluta de `og:image`.
+
+### Publicación y comprobación
+
+Es necesario publicar juntos `index.html` y `assets/puntro-sales-og-v1.jpg` en el alojamiento estático existente. No hay un nuevo paso de generación, backend ni cambios en los endpoints JSON.
+
+**Estado comprobado el 27 de octubre de 2026, antes de publicar estos cambios:** el dominio y el subdirectorio están confirmados, pero el despliegue todavía sirve el HTML anterior, sin Open Graph, y la nueva URL de imagen responde HTTP 404 con `text/html`. Por eso todavía está pendiente comprobar allí la imagen publicada con HTTP 200 y `Content-Type: image/jpeg`, sus dimensiones y su contenido, además del HTML con las nuevas etiquetas. No falta configurar ni contratar otro servicio: falta publicar los archivos modificados mediante el proceso existente.
+
+Estas son URLs reales disponibles para la prueba después de publicar. Se abrieron en Chrome y actualmente muestran el catálogo correspondiente, con la versión anterior del visor:
+
+| Caso | URL real |
+| --- | --- |
+| Catálogo local de demostración | [Abrir visor sin parámetros](https://www.imecatro.com/catalog/) |
+| `catalog`, negocio La Cocina de Lupita | [Abrir con catalog](https://www.imecatro.com/catalog/?catalog=https%3A%2F%2Fapps.imecatro.com%2Fc%2Fdemo-puntrosales-001) |
+| `url` Base64 URL-safe, mismo negocio | [Abrir con url](https://www.imecatro.com/catalog/?url=aHR0cHM6Ly9hcHBzLmltZWNhdHJvLmNvbS9jL2RlbW8tcHVudHJvc2FsZXMtMDAx) |
+
+El [endpoint JSON real de ese negocio](https://apps.imecatro.com/c/demo-puntrosales-001) respondió HTTP 200 con `application/json`. No se convirtió en HTML ni se modificó su contrato. Restringe las solicitudes desde localhost (se observó HTTP 403 y falta de permiso CORS); los enlaces anteriores sí se comprobaron en navegador desde el dominio público. Las pruebas locales de otros catálogos usaron endpoints temporales de prueba con CORS.
+
+Verificaciones técnicas realizadas con los archivos modificados, mediante un servidor local temporal y Chrome:
+
+- El HTML recibido por HTTP sin ejecutar JavaScript contiene las nueve etiquetas OG, el título y la descripción esperados; es idéntico para diferentes parámetros. No hay `canonical` ni redirecciones añadidas.
+- El archivo final se decodifica como JPEG de 1200 × 630 y pesa 156 747 bytes. Su descarga local bajo `/catalog/assets/` responde HTTP 200 con `image/jpeg`; se revisó visualmente.
+- El catálogo local y dos negocios distintos cargan con `catalog` y `url`; se conserva la prioridad de `url`, incluso si su valor es inválido y existe un `catalog` válido.
+- Con respuestas Firebase **simuladas**, se comprobó que ambos formatos envían la URL completa conservando exactamente `%2F`, `alt` y `token`. No se validaron permisos ni CORS de un bucket Firebase real.
+- Los endpoints remotos de prueba sin extensión `.json` siguen entregando JSON. Las tres plantillas, búsqueda, filtros, enlace de contacto y copia de la URL completa funcionan. El nombre y la descripción del negocio se muestran y los metadatos permanecen genéricos.
+- Se probaron un catálogo expirado y un endpoint inexistente: sus vistas de estado siguen funcionando y sus metadatos son los mismos que los de un catálogo disponible.
+
+Esto es **validación técnica de HTML, imagen y funcionamiento del visor**, no una prueba real de tarjeta en WhatsApp. **No se envió ningún enlace por WhatsApp.** Después de publicar hay que enviar las URLs reales anteriores y revisar la tarjeta y que al abrirla se conserve el catálogo seleccionado.
+
+WhatsApp y otras plataformas pueden guardar tarjetas antiguas en caché. Cambiar el archivo o su URL versionada no garantiza una actualización inmediata de las tarjetas ya almacenadas.
+
+Como el HTML inicial es estático y genérico, la misma tarjeta puede aparecer aunque el catálogo esté expirado, despublicado o no exista. Estos metadatos no detectan esos estados; la carga y las vistas de estado existentes se resuelven al abrir el visor con JavaScript.
 
 ## Ejemplo de JSON
 
